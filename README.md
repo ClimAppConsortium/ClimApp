@@ -116,7 +116,7 @@ Tests for fetching data from DWD Open Data and Open Weather Map in Jupyter Noteb
 
 
 ## Documentation
-Documentation of the app can be found in the [ClimApp Wiki](https://github.com/frksteenhoff/ClimApp/wiki). 
+Documentation of the app can be found in the [ClimApp Wiki](https://github.com/ClimAppConsortium/ClimApp/wiki). 
 
 
-Copyright @frksteenhoff
+Copyright @ClimAppConsortium
