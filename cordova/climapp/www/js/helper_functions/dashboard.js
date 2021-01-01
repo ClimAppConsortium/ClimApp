@@ -50,7 +50,7 @@ function windchillRisk(windchill) {
 
 
 // kb shorthand for knowledgeBase
-function BSA(kb) { //m2
+function BSA(kb){ //m2
     if(typeof(kb) !== 'undefined'){ // Making sure only valid kb instances are being accessed.
         let w = kb.user.settings.weight; //kg
         let h = kb.user.settings.height / 100; //m
@@ -61,7 +61,10 @@ function BSA(kb) { //m2
 function M(kb) { //W/m2
     if(typeof(kb) !== 'undefined'){ // Making sure only valid kb instances are being accessed.
         let ISO_selected = kb.user.settings.activity_selected;
-		return kb.activity.values[ ISO_selected ].val / BSA(kb);
+		var watt = kb.activity.values[ ISO_selected ].val;
+		var m2 = BSA(kb);
+		//console.log( "M:" + watt/m2);
+		return watt / m2;
     }
 }
 
@@ -105,10 +108,10 @@ function getCAF(kb){
 	return ( clothingvalues[clokey] + headvalues[helmetkey] );
 	*/
 	let icl = getClo( kb );
-	let icl_norm = 1.0;
+	let icl_norm = 0.6;//ISO clothing base
 	let icl_max = 2.0; //winter full
 	let d_icl = icl_max - icl_norm;
-	let dCav_icl = 3.0;//double layer icl
+	let dCav_icl = 3.0;//double layer cav
 	let CAV_icl = dCav_icl * ( icl - icl_norm ) / d_icl;
 	
 	
@@ -154,31 +157,17 @@ function WBGTrisk(wbgt, kb, isPersonalised ) {
 		return risk / 0.8; //scale to max 1
 	}
 	else if( risk <= 1.0 ){
-		//class = "orange";
+		//class = "yellow";
 		return 1 + (risk - 0.8)/0.2; //scale between 1 and 2
 	}
 	else if( risk <= 1.2 ){
-		//class = "red";
+		//class = "orange";
 		return 2 + (risk - 1.0)/0.2; //scale between 2 and 3
 	}
 	else{
-		//class = "darkred";
+		//class = "red";
 		return 3 + (risk - 1.2); //scale 3 and beyond		
 	}
-}
-
-// Are we still using these? (do they need translation)
-function neutralTips() {
-	let tips = [ "Enjoy your activity",
-				"Looks like it's all good",
-				"An apple a day keeps the doctor at bay",
-				"French minister names his cat 'Brexit' because: &quot;she meows loudly it wants to go out, but just stands there waiting when I open the door&quot;",
-				"Two atoms walk into a bar, one says: &quot;I just lost an electron&quot, the other replies: &quot;are you sure?&quot; ... &quot;yes, i'm positive!&quot",
-				"It doesn't matter what temperature the room is, it's always room temperature.",
-				"If you cannot measure it, you cannot improve it - Lord Kelvin",
-	];
-	let i = Math.floor( Math.random() * tips.length );
-	return tips[i];
 }
 
 function heatLevelTips( index, level, kb, pageID, translations, language){
@@ -203,7 +192,7 @@ function heatLevelTips( index, level, kb, pageID, translations, language){
 		var url = "https://www.sensationmapps.com/WBGT/api/thermaladvisor.php";
 		var riskval = WBGTrisk( kb.thermalindices.phs[index].wbgt, kb, true );		
 		var risklabel = gaugeTitleHeat( riskval, translations, language);
-		
+		//console.log( "retrieving heat level tips: " + JSON.stringify( data ) );
 		$.get( url, data).done( function(data, status, xhr){
 			if(status === "success") {
 				
@@ -212,7 +201,7 @@ function heatLevelTips( index, level, kb, pageID, translations, language){
 				let tips = JSON.parse(data);
 				console.log(JSON.stringify(tips));
 				tips.labels.forEach(function(key){
-					str += "<p>" + translations.sentences[key][language] +"</p>";
+					str += "<p class='thermaltip'>" + translations.sentences[key][language] +"</p>";
 				});
 				
                 console.log("Fetched tips.");
@@ -227,10 +216,8 @@ function heatLevelTips( index, level, kb, pageID, translations, language){
 
 function indoorTips( kb, translations, language){
 	let str = "";
-
 	let pps = 100.0 - kb.thermalindices.pmv[ 0 ].PPD;
-	
-	str += "<p>"+pps.toFixed(0)+"% is satisfied with this indoor environment.</p>";
+	str += "<p>"+pps.toFixed(0) + translations.sentences.indoor_tips_ppd[language] +"</p>";
 	return str;
 }
 
@@ -246,56 +233,59 @@ function coldLevelTips( index, level, kb, cold_index, pageID, translations, lang
 	let windrisk = windchillRisk( windchill );
 	let isWindstopperUseful = ( tair - threshold ) > windchill;
 	pageID === "dashboard" ? str += "<p class='label'><i id='circle_gauge_color' class='fas fa-dot-circle'></i>" + gaugeTitleCold(cold_index, translations, language) + "</p>" : str += "";
-		
+	
+	var tips = [];
 	if( level === 1 ){ //beginner, early user
 		if( cold_index <= -1 ){
-			str += "<p>" + translations.sentences.dash_tip_overdressed[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_overdressed[language] );
 		}
 		else if( cold_index <= 1 ){
-			str += "<p>" + translations.sentences.dash_tip_green[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_green[language] );
 		}
 		else if( cold_index <= 2 ){
-			str += "<p>" + translations.sentences.dash_tip_cyan[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_cyan[language] );
 		}
 		else if( cold_index <= 3 ){
-			str += "<p>" + translations.sentences.dash_tip_blue[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_blue[language] );
 			if( windrisk ){
-				str += "<p>" + translations.sentences.dash_tip_windchill_1[language] + " " + windchill.toFixed(0) + "&deg; " + translations.sentences.dash_tip_windchill_2[language] + " " + windrisk + " " + translations.dash_tip_windchill_3[language] + "</p>";
+				tips.push( translations.sentences.dash_tip_windchill_1[language] + " " + windchill.toFixed(0) + "&deg; " + translations.sentences.dash_tip_windchill_2[language] + " " + windrisk + " " + translations.dash_tip_windchill_3[language] );
 			}
 		}
 		else if( cold_index > 3){
-			str += "<p>" + translations.sentences.dash_tip_severe_cold[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_severe_cold[language] );
 			if( windrisk ){
-				str += "<p>" + translations.sentences.dash_tip_windchill_1[language] + " " + windchill.toFixed(0) + "&deg; " + translations.sentences.dash_tip_windchill_2[language] + " " + windrisk + " " + translations.sentences.dash_tip_windchill_3[language] + "</p>";
+				tips.push( translations.sentences.dash_tip_windchill_1[language] + " " + windchill.toFixed(0) + "&deg; " + translations.sentences.dash_tip_windchill_2[language] + " " + windrisk + " " + translations.sentences.dash_tip_windchill_3[language] );
 			}
 		}
 	}
 	else if( level === 2 ){ //experienced user // or more info requested
 		if( cold_index <= -1 ){
-			str += "<p>" + translations.sentences.dash_tip_overdressed[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_overdressed[language] );
 		}
 		else if( cold_index <= 1 ){
-			str += "<p>" + translations.sentences.dash_tip_general_1[language] + "</p>";
-			str += "<p>" + translations.sentences.dash_tip_general_2[language] + "</p>";
-			//str += "<p>" + translations.sentences.dash_tip_general_3[language] + "</p>";
-		}
-		else if( cold_index <= 2 && isWindstopperUseful ){
-			str += "<p>" + translations.sentences.dash_tip_normal[language] + "</p>";
-			str += "<p>" + translations.sentences.dash_tip_windchill_significant_1[language] + " " + windchill.toFixed(0) + "&deg;, " + translations.sentences.dash_tip_windchill_significant_2[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_general_1[language] );
+			tips.push( translations.sentences.dash_tip_general_2[language] );
+			//tips.push( translations.sentences.dash_tip_general_3[language];
 		}
 		else if( cold_index <= 2 ){
-			str += "<p>" + translations.sentences.dash_tip_increase_insulation[language] + "</p>";
+			tips.push( translations.sentences.dash_tip_increase_insulation[language] );
 		}
 		else if( cold_index > 2 ){
-			str += "<p>" + translations.sentences.dash_tip_extra_attention[language] + "</p>";
-			if( isWindstopperUseful ){
-				str += "<p>" + translations.sentences.dash_tip_windchill_significant_1[language] + " " + windchill.toFixed(0) + "&deg;, " + translations.sentences.dash_tip_windchill_significant_2[language] + "</p>";
-			}
-			if( windrisk ){
-				str += "<p>" + translations.sentences.dash_tip_windchill_1[language] + " " + windchill.toFixed(0) + "&deg; " + translations.sentences.dash_tip_windchill_2[language] + " " + windrisk + " " + translations.sentences.dash_tip_windchill_3[language] + "</p>";
-			}
+			tips.push( translations.sentences.dash_tip_extra_attention[language] );
+			
+		}
+		
+		if( isWindstopperUseful ){
+			tips.push( translations.sentences.dash_tip_windchill_significant_1[language] + " " + windchill.toFixed(0) + "&deg;, " + translations.sentences.dash_tip_windchill_significant_2[language] );
+		}
+		if( windrisk ){
+			tips.push( translations.sentences.dash_tip_windchill_1[language] + " " + windchill.toFixed(0) + "&deg; " + translations.sentences.dash_tip_windchill_2[language] + " " + windrisk + " " + translations.sentences.dash_tip_windchill_3[language] );
 		}
 	}
+	
+	$.each( tips, function(key, sentence ){
+		str += "<p class='thermaltip'>"+sentence+"</p>";
+	});
 	return str;
 }
 
@@ -373,35 +363,31 @@ function startIntro(translations, language) {
 	var intro = introJs();
           intro.setOptions({
             steps: [
-              {
-                element: '#nav',
-				intro: "<p><b>" + translations.sentences.intro_nav_1[language]  + "</b></p>" +
-				"<p>" + translations.sentences.intro_nav_2[language] + ".</p>" + 
-				"<p>" + translations.sentences.intro_nav_3[language] + ".</p>",
-				position: "left"
+			  {
+				  element: '#main_panel',
+				  intro: "<p>" + translations.sentences.intro_nav_1[language]  + "</p>", //to familiarize
 			  },
 			  {
-                element: '#gauge_div',
-				intro: "<p>" + translations.sentences.intro_gauge[language] + ".</p>",
-			    position: 'bottom' /*+ 
-						"<p>The positive values indicate the level of heat stress and the negative values the level of cold stress.</p>"*/
+	              element: '#dashboard_numbers',
+				  intro: "<p>" + translations.sentences.intro_range[language] + "</p>",
 			  },
+	          {
+	              element: '#climapp_report',
+				  intro: "<p>" + translations.sentences.intro_climapp_index[language] + "</p>",
+			  },
+	          {
+	              element: '#customisationpanel',
+				  intro: "<p>" + translations.sentences.intro_wheels_1[language] + "</p>" +
+				         "<p>" + translations.sentences.intro_wheels_2[language] + "</p>",
+	          },
 			  {
-                element: '#dashboard_numbers',
-				intro: translations.sentences.intro_range[language] + ".",
-				position: 'bottom'
-              },
-              {
-                element: '#tip_detailed',
-				intro: "<p>" + translations.sentences.intro_details_1[language] + ".</p>",
-                position: 'bottom'
-              },
-              {
-                element: '#selectwork',
-				intro: "<p>" + translations.sentences.intro_wheels_1[language] + ".</p>" +
-				"<p>" + translations.sentences.intro_wheels_2[language] + ".</p>",
-                position: 'bottom'
-              }
+	            element: '#forecast_panel',
+				intro: "<p>" + translations.sentences.intro_gauge[language] + "</p>",
+			  },
+	          {
+	            element: '#details_panel',
+				intro: "<p>" + translations.sentences.intro_details_1[language] + "</p>",
+	          },
             ]
           });
           intro.start();

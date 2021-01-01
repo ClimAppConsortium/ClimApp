@@ -52,6 +52,19 @@ body {
 	/*end required for IOS*/
 }
 
+i.red{
+	color: #FF0000;
+}
+i.blue{
+	color: #0000FF;
+}
+i.yellow{
+	color: #FFFF00;
+}
+i.white{
+	color: #FFFFFF;
+}
+
 /* Landscape layout (with min-width) */
 @media screen and (min-aspect-ratio: 9/16) {
 	body {
@@ -261,7 +274,7 @@ canvas{
 }
 
 .flexbox-2 div.even.last{
-	margin-bottom: 0.5em;
+	margin-bottom: 0.25em;
 }
 .flexbox-2 div.even{
 	margin: auto;
@@ -356,6 +369,10 @@ canvas{
     background: #7EBFE5; /* Old browsers */
 }
 
+div.infographic{
+	background: #6EB7D3;
+}
+
 div.tooltip{
     background: rgba(120, 120, 120,0.8);
 	color: rgba(255,255,255,1);
@@ -383,6 +400,10 @@ button p {
     margin: 0;
 }
 
+li.about{
+	font-size: 0.7em;
+}
+
 p.label{
 	font-size: 0.8em;
     font-weight: bold;
@@ -393,10 +414,11 @@ p.header{
     font-weight: bold;
 }
 
-p.caption{
-	font-size: 1em;
+p.caption, p.thermaltip{
+	font-size: 0.8em;
 	font-style: italic;
 }
+
 span.settings{
 	font-size: 0.8em;
 	font-style: italic;
@@ -420,6 +442,10 @@ p.center{
 }
 p.right{
 	text-align:right;
+}
+
+p.small{
+	font-size:0.7em;
 }
 
 img{
