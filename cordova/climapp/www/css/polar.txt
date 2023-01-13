@@ -1,0 +1,5 @@
+polar
+
+
+    "client_id":"1abf9ef0-0d82-4acf-9f4f-1e3a8eb01fea",
+    "client_secret":"f8474a83-653e-4211-9a65-b4ed5413fdf0"

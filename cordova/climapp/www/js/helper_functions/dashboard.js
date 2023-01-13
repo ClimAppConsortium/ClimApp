@@ -40,7 +40,7 @@ function windchillRisk(windchill) {
     if( windchill <-50 ){
         return 2;
     } else if( windchill < -40 ){
-        return 10;
+        return 5;
     } else if( windchill < -20 ){
         return 30;
     } else if( windchill < -15 ){
@@ -106,7 +106,9 @@ function getCAF(kb){
 	let clokey = kb.user.settings.clothing_selected;
 	let helmetkey = kb.user.settings.headgear_selected;
 	return ( clothingvalues[clokey] + headvalues[helmetkey] );
-	*/
+	
+	
+	//BK - linearisation
 	let icl = getClo( kb );
 	let icl_norm = 0.6;//ISO clothing base
 	let icl_max = 2.0; //winter full
@@ -122,6 +124,16 @@ function getCAF(kb){
 	let dCav_im = 10.0;
 	let CAV_im = dCav_im * (im_norm - im ) / d_im; 
 	return CAV_im + CAV_icl;
+	*/
+	
+	// 
+	let icl = getClo( kb ) * 0.155; // convert to m2K/W
+	let ia = 0.085; //m2K/W
+	let fcl = icl < (2.0 * 0.155) ? 1.00 + 1.81 * icl : 1.2424 * Math.pow( icl, 0.1546 );
+	let it = ia/fcl + icl;
+	let Re_T_s = 0.16 * it;
+	let CAV = 5.81 * Math.log( Re_T_s ) + 20.7;
+	return CAV;
 }
 
 function isClothingCovering(kb){
@@ -131,7 +143,8 @@ function isClothingCovering(kb){
 						"Cloth_coverall": "yes",
 						"Cloth_apron_long_sleeve": "yes",
 						"Vapour_barrier_coverall": "yes",
-						"Winter_attire": "yes" };
+						"Winter_attire": "yes",
+						"Extreme_Winter_attire": "yes"  };
    let clokey = kb.user.settings.clothing_selected;
    return clothingvalues[clokey];
 }
@@ -362,9 +375,12 @@ function coordsIsWithinRange(lat, lon) {
 function startIntro(translations, language) {
 	var intro = introJs();
           intro.setOptions({
-            steps: [
+			  "nextLabel": translations.labels.str_next[language],
+			  "prevLabel": translations.labels.str_back[language],
+			  "doneLabel": translations.labels.str_done[language],
+            "steps": [
 			  {
-				  element: '#main_panel',
+				  title: "ClimApp",
 				  intro: "<p>" + translations.sentences.intro_nav_1[language]  + "</p>", //to familiarize
 			  },
 			  {

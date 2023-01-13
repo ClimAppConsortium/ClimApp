@@ -61,8 +61,8 @@ function addWeatherDataToDB(kb) {
 	let station = kb.weather.station.indexOf( "<br>" ) > -1 ? kb.weather.station.substring(kb.weather.station.indexOf("<br>") + 4 ): kb.weather.station;
     let user_data = {
         "_id": deviceID(),
-        "longitude": kb.weather.lat,
-        "latitude": kb.weather.lng,
+        "longitude": Math.round( kb.weather.lat * 100 ) / 100,
+        "latitude": Math.round( kb.weather.lng * 100 ) / 100,
         "city": station,
         "temperature": kb.weather.temperature[0],
         "wind_speed": kb.weather.windspeed[0],
@@ -83,7 +83,7 @@ function addWeatherDataToDB(kb) {
 function addUseDataToDB(kb, context){
 	
 	let apicall= "insertDataUsage";
-	let url = "http://www.sensationmapps.com/climapp/api.php";
+	let url = "https://www.sensationmapps.com/climapp/api.php";
 	let station = kb.weather.station.indexOf( "<br>" ) > -1 ? kb.weather.station.substring(kb.weather.station.indexOf("<br>") + 4 ): kb.weather.station;
     
 	var icl_min = kb.thermalindices.ireq[0].ICLminimal;
@@ -105,8 +105,8 @@ function addUseDataToDB(kb, context){
 	
 	let user_data = {
         "_id": deviceID(),
-        "lon": kb.weather.lat,
-        "lat": kb.weather.lng,
+        "lon": Math.round( kb.weather.lat * 100 ) / 100,
+        "lat": Math.round( kb.weather.lng * 100 ) / 100,
         "station": station,
 		//
 		"yearOfBirth" : kb.user.settings.yearOfBirth,
@@ -201,14 +201,24 @@ async function createUserRecord(kb) {
             reject(false);
 			
     	});
-    })
+    });
 }
 
 // Retrieving app id from dtu database. Needs to be synchronous as the response is used in subsequent functions.
 function getAppIDFromDB(kb) {
 	console.log( "getAppIDFromDB => new Promise ");
 	
+	
+	
     return new Promise((resolve, reject) => {
+		
+		$.get("https://www.sensationmapps.com/WBGT/api/thermaladvisor.php",
+			  {"mode": "emergencykey"}, 
+			 function( data ){
+			 resolve( data );
+		});
+		/*
+		
         let apicall = "getAppID";
         let url = kb.server.dtu_ip + kb.server.dtu_api_base_url + apicall;
         let user_data = {
@@ -227,13 +237,14 @@ function getAppIDFromDB(kb) {
             }
         }).fail(function (data) {
 			console.log( "failed get app id from DB ");
-			
-			$.get("http://www.sensationmapps.com/WBGT/api/thermaladvisor.php",
+			$.get("https://www.sensationmapps.com/WBGT/api/thermaladvisor.php",
 				  {"mode": "emergencykey"}, 
-				 function( data){
+				 function( data ){
 				 resolve( data );
 			});
+			
         });
+		*/
     })
 }
 
@@ -267,6 +278,37 @@ function getIndoorPrediction(kb) {
                 resolve(indoorTemperature);
             } else {
                 console.log("Failed to retrieve temperature prediction from server.");
+                reject(false);
+            }
+        });
+    })
+}
+
+function putIndoorPredictionCorrect(kb) {
+    return new Promise((resolve, reject) => {
+        let apicall = "putIndoorPredictionCorrect";
+        let url = kb.server.dtu_ip + kb.server.dtu_api_base_url + apicall;
+		let sr = Math.round( kb.thermalindices.ireq[0].rad );
+		
+        let user_data = {
+            "rho": kb.thermalindices.ireq[0].rh, // outdoor relative humidity %
+            "sr": sr, // solar radiation W/m^2
+            "tao": kb.thermalindices.ireq[0].Tair, // outdoor temp (degrees celcius)
+            "wo": kb.user.settings.open_windows, // window opening 0/1
+            "trv": kb.user.settings.thermostat_level, // heating setpoint (radiator valve/thermostat)
+            "cy": 1950, // building construction year [1920,1930 .. 2010]
+            "fa": 40, // floor area 5-200m^2 
+            "no": 3, // number of occupants in room (1-5)
+			"tp": kb.settings.temp_indoor_predicted // number of occupants in room (1-5)
+        };
+        console.log("getting putIndoorPredictionCorrect prediction:" + JSON.stringify( user_data ) );
+		
+        $.post(url, user_data).done(function (data, status, xhr) {
+            if (status === "success") {
+		        console.log("Success: putIndoorPredictionCorrect");
+                resolve(true);
+            } else {
+                console.log("Fail: putIndoorPredictionCorrect.");
                 reject(false);
             }
         });
